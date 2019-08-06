@@ -1,17 +1,17 @@
-struct ELM
+struct ELM{T <: Number}
     n_features::Int
     n_outputs::Int
     hidden_layer::HiddenLayer
-    HH::Matrix{Float64}
-    TH::Matrix{Float64}
+    HH::Matrix{T}
+    TH::Matrix{T}
 
-    function ELM(n_features::Int,
-                 n_outputs::Int,
-                 n_neurons::Int,
-                 activation_function::ActivationFunction)
-        hidden_layer = HiddenLayer(n_neurons, n_features, activation_function)
-        HH = zeros(n_neurons, n_neurons)
-        TH = zeros(n_outputs, n_neurons)
+    function ELM{T}(n_features::Int,
+                    n_outputs::Int,
+                    n_neurons::Int,
+                    activation_function::ActivationFunction) where {T <: Number}
+        hidden_layer = HiddenLayer(T, n_neurons, n_features, activation_function)
+        HH = zeros(T, n_neurons, n_neurons)
+        TH = zeros(T, n_outputs, n_neurons)
         new(n_features, n_outputs, hidden_layer, HH, TH)
     end
 end
@@ -20,7 +20,7 @@ function add_data!(elm::ELM,
                    samples::AbstractArray{T1},
                    targets::AbstractArray{T2},
                    sample_weights::AbstractVector{T3};
-                   batch_size::Int = 1000) where {T1, T2, T3 <: Real}
+                   batch_size::Int = 1000) where {T1, T2, T3 <: Number}
     X = samples
     T = targets
     ψ = sample_weights
@@ -45,7 +45,7 @@ end
 function add_data!(elm::ELM,
                    samples::AbstractArray{T1},
                    targets::AbstractArray{T2};
-                   batch_size::Int = 1000) where {T1, T2 <: Real}
+                   batch_size::Int = 1000) where {T1, T2 <: Number}
     N = last(size(samples))
     sample_weights = [1.0 for n in 1:N]
     add_data!(elm, samples, targets, sample_weights, batch_size=batch_size)
@@ -54,7 +54,7 @@ end
 function add_batch!(elm::ELM,
                     samples::AbstractArray{T1},
                     targets::AbstractArray{T2},
-                    sample_weights::AbstractVector{T3}) where {T1, T2, T3 <: Real}
+                    sample_weights::AbstractVector{T3}) where {T1, T2, T3 <: Number}
     X = samples
     T = targets
     Ψ = LinearAlgebra.Diagonal(sample_weights)
@@ -81,7 +81,7 @@ end
 # some nonlinear operation f (the activation function for each neuron) to each
 # element of the projection.
 function project(hidden_layer::HiddenLayer,
-                 samples::AbstractArray{T}) where T <: Real
+                 samples::AbstractArray{T}) where {T <: Number}
     X = samples
     f = hidden_layer.activation_function
     W = hidden_layer.weights
