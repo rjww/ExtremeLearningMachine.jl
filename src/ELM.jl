@@ -29,8 +29,10 @@ function add_data!(elm::ELM,
     qₜ, Nₜ = size(T)
 
     @assert dₓ == elm.n_features "Input dimensionality mismatch."
-    @assert qₜ == elm.n_targets "Output dimensionality mismatch."
+    @assert qₜ == elm.n_outputs "Output dimensionality mismatch."
     @assert Nₓ == Nₜ == length(ψ) "Sample count mismatch."
+
+    N = Nₓ
 
     for batch in partition_range(1:N, batch_size)
         X₀ = X[:,batch]
@@ -84,7 +86,7 @@ function project(hidden_layer::HiddenLayer,
                  samples::AbstractArray{T}) where {T <: Number}
     X = samples
     f = hidden_layer.activation_function
-    W = hidden_layer.weights
+    W = hidden_layer.input_weights
     H = f.(W * X)
 end
 
