@@ -6,9 +6,15 @@ struct SLFN{T <: Number}
 end
 
 function predict(model::SLFN,
-                 samples::AbstractArray{T}) where {T <: Number}
+                 samples::T) where {T <: AbstractMatrix}
     X = samples
     H = project(model.hidden_layer, X)
     Wₒ = model.output_weights
     Y = Wₒ * H
+    typeof(Y) <: AbstractMatrix && first(size(Y)) == 1 ? vec(Y) : Y
+end
+
+function predict(model::SLFN,
+                 sample::T) where {T <: AbstractVector}
+    predict(model, reshape(sample, 1, :))
 end
