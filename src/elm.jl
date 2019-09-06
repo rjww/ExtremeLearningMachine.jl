@@ -70,7 +70,8 @@ function add_data!(elm::ELM,
                    batch_size::Int = 1000) where {T1 <: AbstractMatrix,
                                                   T2 <: AbstractVector,
                                                   T3 <: AbstractVector}
-    add_data!(elm, samples, reshape(targets, 1, :), sample_weights, batch_size = batch_size)
+    add_data!(elm, samples, reshape(targets, 1, :), sample_weights,
+              batch_size = batch_size)
 end
 
 function add_data!(elm::ELM,
@@ -82,40 +83,43 @@ function add_data!(elm::ELM,
 end
 
 function add_data!(elm::ELM,
-                   samples::T1,
+                   sample::T1,
                    targets::T2,
                    sample_weights::T3;
                    batch_size::Int = 1000) where {T1 <: AbstractVector,
                                                   T2 <: AbstractMatrix,
                                                   T3 <: AbstractVector}
-    add_data!(elm, reshape(samples, 1, :), targets, sample_weights, batch_size = batch_size)
+    add_data!(elm, reshape(sample, 1, :), targets, sample_weights,
+              batch_size = batch_size)
 end
 
 function add_data!(elm::ELM,
-                   samples::T1,
+                   sample::T1,
                    targets::T2;
                    batch_size::Int = 1000) where {T1 <: AbstractVector,
                                                   T2 <: AbstractMatrix}
-    add_data!(elm, reshape(samples, 1, :), targets, batch_size = batch_size)
+    add_data!(elm, reshape(sample, 1, :), targets, batch_size = batch_size)
 end
 
 
 function add_data!(elm::ELM,
-                   samples::T1,
+                   sample::T1,
                    targets::T2,
                    sample_weights::T3;
                    batch_size::Int = 1000) where {T1 <: AbstractVector,
                                                   T2 <: AbstractVector,
                                                   T3 <: AbstractVector}
-    add_data!(elm, reshape(samples, 1, :), reshape(targets, 1, :), sample_weights, batch_size = batch_size)
+    add_data!(elm, reshape(sample, 1, :), reshape(targets, 1, :),
+              sample_weights, batch_size = batch_size)
 end
 
 function add_data!(elm::ELM,
-                   samples::T1,
+                   sample::T1,
                    targets::T2;
                    batch_size::Int = 1000) where {T1 <: AbstractVector,
                                                   T2 <: AbstractVector}
-    add_data!(elm, reshape(samples, 1, :). reshape(targets, 1, :), batch_size = batch_size)
+    add_data!(elm, reshape(sample, 1, :). reshape(targets, 1, :),
+              batch_size = batch_size)
 end
 
 function add_batch!(elm::ELM,
