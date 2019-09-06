@@ -4,9 +4,9 @@ import LinearAlgebra
 
 include("util.jl")
 include("activation_functions.jl")
-include("HiddenLayer.jl")
-include("SLFN.jl")
-include("ELM.jl")
+include("hidden_layer.jl")
+include("slfn.jl")
+include("elm.jl")
 
 export ELM,
        Linear, ReLU, Sigmoid, Square, Tanh,
