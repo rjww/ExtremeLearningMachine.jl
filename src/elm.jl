@@ -1,26 +1,33 @@
 struct ELM{T <: Number}
     n_features::Int
     n_outputs::Int
-    hidden_layer::HiddenLayer
-    HH::Matrix{T}
-    TH::Matrix{T}
+    hidden_layer::MutableHiddenLayer
 
     function ELM{T}(n_features::Int,
-                    n_outputs::Int,
-                    n_neurons::Int,
-                    activation_function::ActivationFunction) where {T <: Number}
-        hidden_layer = HiddenLayer(T, n_neurons, n_features, activation_function)
-        HH = zeros(T, n_neurons + 1, n_neurons + 1)
-        TH = zeros(T, n_outputs, n_neurons + 1)
-        new(n_features, n_outputs, hidden_layer, HH, TH)
+                    n_outputs::Int) where {T <: Number}
+        hidden_layer = MutableHiddenLayer(T)
+        new{T}(n_features, n_outputs, hidden_layer)
     end
 
     function ELM(n_features::Int,
-                 n_outputs::Int,
-                 n_neurons::Int,
-                 activation_function::ActivationFunction)
-        ELM{Float64}(n_features, n_outputs, n_neurons, activation_function)
+                 n_outputs::Int)
+        ELM{Float64}(n_features, n_outputs)
     end
+end
+
+function add_neurons!(elm::ELM,
+                      n_neurons::Int,
+                      activation_function::F) where {F <: ActivationFunction}
+    @assert begin
+        isnothing(elm.hidden_layer.HH) &&
+        isnothing(elm.hidden_layer.TH)
+    end "Call clear! on ELM before adding neurons."
+
+    T = getparams(elm.hidden_layer)
+    neurons = Neurons(T, n_neurons, elm.n_features, activation_function)
+    elm.hidden_layer.n_neurons += n_neurons
+    push!(elm.hidden_layer.neurons, neurons)
+    elm
 end
 
 function add_data!(elm::ELM,
@@ -30,15 +37,20 @@ function add_data!(elm::ELM,
                    batch_size::Int = 1000) where {T1 <: AbstractMatrix,
                                                   T2 <: AbstractMatrix,
                                                   T3 <: AbstractVector}
+    @assert elm.hidden_layer.n_neurons > 0 "Add neurons to ELM before adding data."
+
+    if !is_initialized(elm.hidden_layer)
+        initialize!(elm.hidden_layer, elm.n_outputs)
+    end
+
     X = samples
     T = targets
     ψ = sample_weights
+    Dₓ, Nₓ = size(X)
+    Qₜ, Nₜ = size(T)
 
-    dₓ, Nₓ = size(X)
-    qₜ, Nₜ = size(T)
-
-    @assert dₓ == elm.n_features "Input dimensionality mismatch."
-    @assert qₜ == elm.n_outputs "Output dimensionality mismatch."
+    @assert Dₓ == elm.n_features "Input dimensionality mismatch."
+    @assert Qₜ == elm.n_outputs "Output dimensionality mismatch."
     @assert Nₓ == Nₜ == length(ψ) "Sample count mismatch."
 
     N = Nₓ
@@ -142,9 +154,18 @@ function add_batch!(elm::ELM,
 
     # Increment `elm.HH` and `elm.TH`, two covariance matrices which preserve
     # the intermediate state of the ELM, before it is solved.
-    elm.HH .+= (H * H')
-    elm.TH .+= (T * H')
+    elm.hidden_layer.HH .+= (H * H')
+    elm.hidden_layer.TH .+= (T * H')
 
+    elm
+end
+
+function clear!(elm::ELM)
+    elm.hidden_layer.n_neurons = 0
+    elm.hidden_layer.neurons = Vector{Neurons}()
+    elm.hidden_layer.HH = nothing
+    elm.hidden_layer.TH = nothing
+    elm.hidden_layer.initialized = false
     elm
 end
 
@@ -156,17 +177,33 @@ end
 function project(hidden_layer::HiddenLayer,
                  samples::T) where {T <: AbstractMatrix}
     X = samples
-    f = hidden_layer.activation_function
-    W = hidden_layer.input_weights
-    H = ones(eltype(W), first(size(W)) + 1, last(size(X)))
-    H[1:end-1,:] .= f.(W * X)
+    L = hidden_layer.n_neurons
+    N = last(size(X))
+
+    H = ones(getparams(hidden_layer), L + 1, N)
+    i₀ = 1
+
+    for (i, neurons) in enumerate(hidden_layer.neurons)
+        L₀ = neurons.n_neurons
+        f = neurons.activation_function
+        W = neurons.weights
+
+        i₁ = i₀ + L₀ - 1
+
+        H[i₀:i₁,:] .= f.(W * X)
+
+        i₀ = i₁ + 1
+    end
+
     H
 end
 
 # Find the optimal output weights for the model by multiplying `elm.TH` by the
 # pseudoinverse of `elm.HH`, and return the solved model as an `SLFN` object.
 function solve(elm::ELM)
-    hidden_layer = copy(elm.hidden_layer)
-    output_weights = elm.TH * LinearAlgebra.pinv(elm.HH)
-    SLFN(elm.n_features, elm.n_outputs, hidden_layer, output_weights)
+    D = elm.n_features
+    Q = elm.n_outputs
+    hidden_layer = make_immutable(elm.hidden_layer)
+    output_weights = elm.hidden_layer.TH * LinearAlgebra.pinv(elm.hidden_layer.HH)
+    SLFN(D, Q, hidden_layer, output_weights)
 end
