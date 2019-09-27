@@ -161,8 +161,6 @@ function add_batch!(elm::ELM,
 end
 
 function clear!(elm::ELM)
-    elm.hidden_layer.n_neurons = 0
-    elm.hidden_layer.neurons = Vector{Neurons}()
     elm.hidden_layer.HH = nothing
     elm.hidden_layer.TH = nothing
     elm.hidden_layer.initialized = false
