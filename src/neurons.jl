@@ -1,22 +1,23 @@
-struct Neurons{F <: ActivationFunction, T <: Number}
+struct Neurons{T₁ <: Number,
+               T₂ <: ActivationFunction}
     n_neurons::Int
-    activation_function::F
-    weights::Matrix{T}
+    weights::Matrix{T₁}
+    activation_function::T₂
 
-    function Neurons(::Type{T},
+    function Neurons(::Type{T₁},
                      n_neurons::Int,
                      n_features::Int,
-                     activation_function::F) where {F <: ActivationFunction,
-                                                    T <: Number}
-        weights = gaussian_projection_matrix(T, n_neurons, n_features)
-        new{F,T}(n_neurons, activation_function, weights)
+                     activation_function::T₂) where {T₁ <: Number,
+                                                     T₂ <: ActivationFunction}
+        weights = gaussian_projection_matrix(T₁, n_neurons, n_features)
+        new{T₁,T₂}(n_neurons, weights, activation_function)
     end
 
     function Neurons(n_neurons::Int,
-                     activation_function::F,
-                     weights::AbstractMatrix{T}) where {F <: ActivationFunction,
-                                                        T <: Number}
-        new{F,T}(n_neurons, activation_function, weights)
+                     weights::AbstractMatrix{T₁},
+                     activation_function::T₂) where {T₁ <: Number,
+                                                     T₂ <: ActivationFunction}
+        new{T₁,T₂}(n_neurons, weights, activation_function)
     end
 end
 

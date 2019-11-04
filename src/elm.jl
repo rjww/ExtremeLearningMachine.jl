@@ -1,7 +1,7 @@
 struct ELM{T <: Number}
     n_features::Int
     n_outputs::Int
-    hidden_layer::MutableHiddenLayer
+    hidden_layer::MutableHiddenLayer{T}
 
     function ELM{T}(n_features::Int,
                     n_outputs::Int) where {T <: Number}
@@ -15,28 +15,32 @@ struct ELM{T <: Number}
     end
 end
 
-function add_neurons!(elm::ELM,
+function add_neurons!(elm::T₁,
                       n_neurons::Int,
-                      activation_function::F) where {F <: ActivationFunction}
+                      activation_function::T₂) where {T₁ <: ELM,
+                                                      T₂ <: ActivationFunction}
+    param(::HiddenLayer{T}) where {T} = T
+
     @assert begin
         isnothing(elm.hidden_layer.HH) &&
         isnothing(elm.hidden_layer.TH)
     end "Call clear! on ELM before adding neurons."
 
-    T = getparams(elm.hidden_layer)
-    neurons = Neurons(T, n_neurons, elm.n_features, activation_function)
+    neurons = Neurons(param(elm.hidden_layer), n_neurons,
+                      elm.n_features, activation_function)
     elm.hidden_layer.n_neurons += n_neurons
     push!(elm.hidden_layer.neurons, neurons)
     elm
 end
 
-function add_data!(elm::ELM,
-                   samples::T1,
-                   targets::T2,
-                   sample_weights::T3;
-                   batch_size::Int = 1000) where {T1 <: AbstractMatrix,
-                                                  T2 <: AbstractMatrix,
-                                                  T3 <: AbstractVector}
+function add_data!(elm::T₁,
+                   samples::T₂,
+                   targets::T₃,
+                   sample_weights::T₄;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractMatrix,
+                                                  T₃ <: AbstractMatrix,
+                                                  T₄ <: AbstractVector}
     @assert elm.hidden_layer.n_neurons > 0 "Add neurons to ELM before adding data."
 
     if !is_initialized(elm.hidden_layer)
@@ -65,81 +69,89 @@ function add_data!(elm::ELM,
     elm
 end
 
-function add_data!(elm::ELM,
-                   samples::T1,
-                   targets::T2;
-                   batch_size::Int = 1000) where {T1 <: AbstractMatrix,
-                                                  T2 <: AbstractMatrix}
+function add_data!(elm::T₁,
+                   samples::T₂,
+                   targets::T₃;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractMatrix,
+                                                  T₃ <: AbstractMatrix}
     N = last(size(samples))
     sample_weights = [1.0 for n in 1:N]
     add_data!(elm, samples, targets, sample_weights, batch_size = batch_size)
 end
 
-function add_data!(elm::ELM,
-                   samples::T1,
-                   targets::T2,
-                   sample_weights::T3;
-                   batch_size::Int = 1000) where {T1 <: AbstractMatrix,
-                                                  T2 <: AbstractVector,
-                                                  T3 <: AbstractVector}
+function add_data!(elm::T₁,
+                   samples::T₂,
+                   targets::T₃,
+                   sample_weights::T₄;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractMatrix,
+                                                  T₃ <: AbstractVector,
+                                                  T₄ <: AbstractVector}
     add_data!(elm, samples, reshape(targets, 1, :), sample_weights,
               batch_size = batch_size)
 end
 
-function add_data!(elm::ELM,
-                   samples::T1,
-                   targets::T2;
-                   batch_size::Int = 1000) where {T1 <: AbstractMatrix,
-                                                  T2 <: AbstractVector}
+function add_data!(elm::T₁,
+                   samples::T₂,
+                   targets::T₃;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractMatrix,
+                                                  T₃ <: AbstractVector}
     add_data!(elm, samples, reshape(targets, 1, :), batch_size = batch_size)
 end
 
-function add_data!(elm::ELM,
-                   sample::T1,
-                   targets::T2,
-                   sample_weights::T3;
-                   batch_size::Int = 1000) where {T1 <: AbstractVector,
-                                                  T2 <: AbstractMatrix,
-                                                  T3 <: AbstractVector}
+function add_data!(elm::T₁,
+                   sample::T₂,
+                   targets::T₃,
+                   sample_weights::T₄;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractVector,
+                                                  T₃ <: AbstractMatrix,
+                                                  T₄ <: AbstractVector}
     add_data!(elm, reshape(sample, 1, :), targets, sample_weights,
               batch_size = batch_size)
 end
 
-function add_data!(elm::ELM,
-                   sample::T1,
-                   targets::T2;
-                   batch_size::Int = 1000) where {T1 <: AbstractVector,
-                                                  T2 <: AbstractMatrix}
+function add_data!(elm::T₁,
+                   sample::T₂,
+                   targets::T₃;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractVector,
+                                                  T₃ <: AbstractMatrix}
     add_data!(elm, reshape(sample, 1, :), targets, batch_size = batch_size)
 end
 
 
-function add_data!(elm::ELM,
-                   sample::T1,
-                   targets::T2,
-                   sample_weights::T3;
-                   batch_size::Int = 1000) where {T1 <: AbstractVector,
-                                                  T2 <: AbstractVector,
-                                                  T3 <: AbstractVector}
+function add_data!(elm::T₁,
+                   sample::T₂,
+                   targets::T₃,
+                   sample_weights::T₄;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractVector,
+                                                  T₃ <: AbstractVector,
+                                                  T₄ <: AbstractVector}
     add_data!(elm, reshape(sample, 1, :), reshape(targets, 1, :),
               sample_weights, batch_size = batch_size)
 end
 
-function add_data!(elm::ELM,
-                   sample::T1,
-                   targets::T2;
-                   batch_size::Int = 1000) where {T1 <: AbstractVector,
-                                                  T2 <: AbstractVector}
+function add_data!(elm::T₁,
+                   sample::T₂,
+                   targets::T₃;
+                   batch_size::Int = 1000) where {T₁ <: ELM,
+                                                  T₂ <: AbstractVector,
+                                                  T₃ <: AbstractVector}
     add_data!(elm, reshape(sample, 1, :). reshape(targets, 1, :),
               batch_size = batch_size)
 end
 
-function add_batch!(elm::ELM,
-                    samples::T1,
-                    targets::T2,
-                    sample_weights::T3) where {T1 <: AbstractMatrix,
-                                               T2 <: AbstractMatrix,
-                                               T3 <: AbstractVector}
+function add_batch!(elm::T₁,
+                    samples::T₂,
+                    targets::T₃,
+                    sample_weights::T₄) where {T₁ <: ELM,
+                                               T₂ <: AbstractMatrix,
+                                               T₃ <: AbstractMatrix,
+                                               T₄ <: AbstractVector}
     X = samples
     T = targets
     Ψ = LinearAlgebra.Diagonal(sample_weights)
@@ -160,45 +172,16 @@ function add_batch!(elm::ELM,
     elm
 end
 
-function clear!(elm::ELM)
+function clear!(elm::T) where {T <: ELM}
     elm.hidden_layer.HH = nothing
     elm.hidden_layer.TH = nothing
     elm.hidden_layer.initialized = false
     elm
 end
 
-# Get H, the nonlinear representation of the sample array X. First, we project
-# X onto R random hyperplanes (where R is the number of neurons in the hidden
-# layer) by taking the product of the input weights W and X. Then, we apply
-# some nonlinear operation f (the activation function for each neuron) to each
-# element of the projection.
-function project(hidden_layer::HiddenLayer,
-                 samples::T) where {T <: AbstractMatrix}
-    X = samples
-    L = hidden_layer.n_neurons
-    N = last(size(X))
-
-    H = ones(getparams(hidden_layer), L + 1, N)
-    i₀ = 1
-
-    for (i, neurons) in enumerate(hidden_layer.neurons)
-        L₀ = neurons.n_neurons
-        f = neurons.activation_function
-        W = neurons.weights
-
-        i₁ = i₀ + L₀ - 1
-
-        H[i₀:i₁,:] .= f.(W * X)
-
-        i₀ = i₁ + 1
-    end
-
-    H
-end
-
 # Find the optimal output weights for the model by multiplying `elm.TH` by the
 # pseudoinverse of `elm.HH`, and return the solved model as an `SLFN` object.
-function solve(elm::ELM)
+function solve(elm::T) where {T <: ELM}
     D = elm.n_features
     Q = elm.n_outputs
     hidden_layer = make_immutable(elm.hidden_layer)
